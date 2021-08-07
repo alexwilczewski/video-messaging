@@ -1,23 +1,23 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-const { VueLoaderPlugin } = require("vue-loader");
 const webpack = require("webpack");
 
 module.exports = {
     entry: {
-        main: "./src/entry.js",
+        main: "./src/entry.tsx",
     },
     module: {
         rules: [{
-            test: /\.vue$/,
-            loader: "vue-loader",
-        }, {
             test: /\.css$/,
             use: [
                 "style-loader",
                 "css-loader",
             ],
-        },]
+        }, {
+            test: /\.tsx?$/,
+            loader: "ts-loader",
+            exclude: /node_modules/
+        },],
     },
     output: {
         filename: "main.js",
@@ -32,10 +32,12 @@ module.exports = {
             template: "src/index.ejs",
             title: "Video Messaging",
         }),
-        new VueLoaderPlugin(),
         new webpack.DefinePlugin({
             __VUE_OPTIONS_API__: true,
             __VUE_PROD_DEVTOOLS__: false,
         }),
     ],
+    resolve: {
+        extensions: [".js", ".ts", ".tsx"],
+    },
 };
