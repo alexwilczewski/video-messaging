@@ -1,6 +1,12 @@
 import React, { Component } from "react";
 
 export class VideoPreview extends Component<IProps, IState> {
+  constructor(props: IProps) {
+    super(props);
+
+    this.videoRef = this.videoRef.bind(this);
+  }
+
   videoRef(element: HTMLVideoElement) {
     element.srcObject = this.props.stream;
   }

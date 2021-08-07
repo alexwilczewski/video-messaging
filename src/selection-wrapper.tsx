@@ -37,6 +37,7 @@ export class SelectionWrapper extends Component<IProps, IState> {
                 camera: false,
                 screen: false,
             },
+            previewStream: undefined,
             screen: {
                 stream: undefined,
                 isFullscreen: false,
@@ -46,7 +47,6 @@ export class SelectionWrapper extends Component<IProps, IState> {
                     canvas: undefined,
                     compiledStream: undefined,
                     pictureInPictureStream: undefined,
-                    stream: undefined,
                     videoElements: {
                         camera: undefined,
                         pictureInPicture: undefined,
@@ -73,12 +73,22 @@ export class SelectionWrapper extends Component<IProps, IState> {
 
     async componentDidUpdate(prevProps: IProps, prevState: IState) {
         if (!prevState.enabled.audio && this.state.enabled.audio) {
-            // Audio was turned on!
+            // Audio was enabled!
             try {
                 this.handleCaptureAudioLevel();
             } catch (ex) {
                 console.error("Unable to capture audio levels.", ex);
             }
+        }
+
+        if (!prevState.camera.stream && this.state.camera.stream) {
+            // Camera was enabled!
+            this.handleVideoChange();
+        }
+
+        if (!prevState.screen.stream && this.state.screen.stream) {
+            // Screen was enabled!
+            this.handleVideoChange();
         }
     }
 
@@ -327,22 +337,22 @@ export class SelectionWrapper extends Component<IProps, IState> {
         if (this.state.videos.preview.compiledStream) {
             this.state.videos.preview.compiledStream.getTracks().forEach((o) => o.stop());
         }
-        this.setState({
-            videos: {
-                ...this.state.videos,
-                preview: {
-                    ...this.state.videos.preview,
-                    canvas: undefined,
-                    compiledStream: undefined,
-                    stream: undefined,
-                    videoElements: {
-                        ...this.state.videos.preview.videoElements,
-                        camera: undefined,
-                        screen: undefined,
-                    },
-                },
-            },
-        });
+        // this.setState({
+        //     videos: {
+        //         ...this.state.videos,
+        //         preview: {
+        //             ...this.state.videos.preview,
+        //             canvas: undefined,
+        //             compiledStream: undefined,
+        //             stream: undefined,
+        //             videoElements: {
+        //                 ...this.state.videos.preview.videoElements,
+        //                 camera: undefined,
+        //                 screen: undefined,
+        //             },
+        //         },
+        //     },
+        // });
     }
     buildPreviewStream() {
         let cameraVideo: HTMLVideoElement | undefined = undefined;
@@ -412,18 +422,18 @@ export class SelectionWrapper extends Component<IProps, IState> {
         }
 
         this.setState({
+            previewStream: previewStream,
             videos: {
                 ...this.state.videos,
                 preview: {
                     ...this.state.videos.preview,
                     canvas: previewCanvas,
                     compiledStream: compiledStream,
-                    stream: previewStream,
                     videoElements: {
                         ...this.state.videos.preview.videoElements,
                         camera: cameraVideo,
                         screen: screenVideo,
-                    }
+                    },
                 },
             },
         });
@@ -486,7 +496,7 @@ export class SelectionWrapper extends Component<IProps, IState> {
     render() {
         return (
             <div>
-                <div className="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                <div className="">
                     <RecordSelection
                         audio={this.state.enabled.audio}
                         camera={this.state.enabled.camera}
@@ -496,7 +506,7 @@ export class SelectionWrapper extends Component<IProps, IState> {
                     <SelectionPreview
                         audioLevel={this.state.audio.level}
                         showAudio={!!this.state.audio.stream}
-                        videoStream={this.state.videos.preview.stream}
+                        videoStream={this.state.previewStream}
                     ></SelectionPreview>
                 </div>
             </div >
@@ -518,6 +528,7 @@ type IState = {
         camera: boolean,
         screen: boolean,
     },
+    previewStream?: MediaStream,
     screen: {
         stream?: MediaStream,
         isFullscreen: boolean,
@@ -527,7 +538,6 @@ type IState = {
             canvas?: HTMLCanvasElement,
             compiledStream?: MediaStream,
             pictureInPictureStream?: MediaStream,
-            stream?: MediaStream,
             videoElements: {
                 camera?: HTMLVideoElement,
                 pictureInPicture?: HTMLVideoElement,

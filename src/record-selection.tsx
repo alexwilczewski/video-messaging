@@ -40,18 +40,18 @@ export class RecordSelection extends Component<IProps, IState> {
 
   render() {
     const cameraClasses = [
-      "btn btn-lg px-4 mx-1",
+      "btn btn-lg px-4",
       (this.props.camera ? "btn-secondary" : "btn-outline-secondary"),
     ];
     const audioClasses = [
-      "btn btn-lg px-4 mx-1",
+      "btn btn-lg px-4",
       (this.props.audio ? "btn-secondary" : "btn-outline-secondary"),];
     const screenClasses = [
-      "btn btn-lg px-4 mx-1",
+      "btn btn-lg px-4",
       (this.props.screen ? "btn-secondary" : "btn-outline-secondary"),];
 
     return (
-      <div>
+      <div className="d-grid gap-2 d-sm-flex justify-content-sm-center">
         <button
           type="button"
           className={cameraClasses.join(" ")}
