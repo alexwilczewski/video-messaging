@@ -40,14 +40,14 @@ export class RecordSelection extends Component<IProps, IState> {
 
   render() {
     const cameraClasses = [
-      "btn btn-lg px-4",
+      "btn btn-lg px-4 mx-1",
       (this.props.camera ? "btn-secondary" : "btn-outline-secondary"),
     ];
     const audioClasses = [
-      "btn btn-lg px-4",
+      "btn btn-lg px-4 mx-1",
       (this.props.audio ? "btn-secondary" : "btn-outline-secondary"),];
     const screenClasses = [
-      "btn btn-lg px-4",
+      "btn btn-lg px-4 mx-1",
       (this.props.screen ? "btn-secondary" : "btn-outline-secondary"),];
 
     return (
@@ -57,7 +57,7 @@ export class RecordSelection extends Component<IProps, IState> {
           className={cameraClasses.join(" ")}
           onClick={this.cameraToggle}
         >
-          <FontawesomeCheck className="me-2"
+          <FontawesomeCheck className="me-1"
             on={this.props.camera} />Camera
         </button>
 
@@ -66,7 +66,7 @@ export class RecordSelection extends Component<IProps, IState> {
           className={audioClasses.join(" ")}
           onClick={this.audioToggle}
         >
-          <FontawesomeCheck className="me-2"
+          <FontawesomeCheck className="me-1"
             on={this.props.audio} />Audio
         </button>
 
@@ -75,7 +75,7 @@ export class RecordSelection extends Component<IProps, IState> {
           className={screenClasses.join(" ")}
           onClick={this.screenToggle}
         >
-          <FontawesomeCheck className="me-2"
+          <FontawesomeCheck className="me-1"
             on={this.props.screen} />Screen
         </button>
       </div>

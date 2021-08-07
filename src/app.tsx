@@ -1,5 +1,6 @@
 import React, { Component } from "react";
 import { SelectionWrapper } from "./selection-wrapper";
+import "./icons/entry";
 
 export class App extends Component {
   render() {

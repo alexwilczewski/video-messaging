@@ -15,6 +15,7 @@
     "@fortawesome/fontawesome-svg-core": "^1.2.36",
     "@fortawesome/pro-regular-svg-icons": "^5.15.4",
     "@fortawesome/pro-solid-svg-icons": "^5.15.4",
+    "@fortawesome/react-fontawesome": "^0.1.15",
     "bootstrap": "^5.1.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
