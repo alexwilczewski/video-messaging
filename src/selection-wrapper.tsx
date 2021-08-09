@@ -7,6 +7,8 @@ import { ScreenHandlerError } from "./lib/screen/ScreenHandlerError";
 import { CameraHandler } from "./lib/camera/CameraHandler";
 import { CameraRequest } from "./lib/camera/CameraRequest";
 import { CameraHandlerError } from "./lib/camera/CameraHandlerError";
+import { PreviewBuilder } from "./lib/preview/PreviewBuilder";
+import { PreviewHandler } from "./lib/preview/PreviewHandler";
 
 type SelectionRequestRequest = {
     audio: Boolean;
@@ -26,6 +28,7 @@ export class SelectionWrapper extends Component<IProps, IState> {
             max: 4,
         };
     private cameraHandler?: CameraHandler;
+    private previewHandler?: PreviewHandler;
     private screenHandler?: ScreenHandler;
 
     constructor(props: IProps) {
@@ -41,26 +44,19 @@ export class SelectionWrapper extends Component<IProps, IState> {
                 camera: false,
                 screen: false,
             },
-            previewStream: undefined,
             videos: {
                 preview: {
-                    canvas: undefined,
-                    compiledStream: undefined,
                     pictureInPictureStream: undefined,
                     videoElements: {
-                        camera: undefined,
                         pictureInPicture: undefined,
-                        screen: undefined,
                     },
-                },
-                record: {
-                    stream: undefined,
                 },
             },
         };
 
         this.handleCameraTurningOff = this.handleCameraTurningOff.bind(this);
         this.handleScreenTurningOff = this.handleScreenTurningOff.bind(this);
+        this.handleVideoChange = this.handleVideoChange.bind(this);
         this.selectionRequest = this.selectionRequest.bind(this);
         this.updateAudioLevel = this.updateAudioLevel.bind(this);
     }
@@ -191,6 +187,7 @@ export class SelectionWrapper extends Component<IProps, IState> {
         }
     }
     handleCameraTurningOff() {
+        debugger;
         if (this.cameraHandler) {
             this.cameraHandler.dispose();
             this.cameraHandler = undefined;
@@ -272,115 +269,28 @@ export class SelectionWrapper extends Component<IProps, IState> {
     }
 
     async handleVideoChange() {
-        this.clearPreviewStream();
         this.buildPreviewStream();
 
-        this.clearPictureInPicturePreviewStream();
+        await this.clearPictureInPicturePreviewStream();
         await this.buildPictureInPicturePreviewStream();
     }
-    clearPreviewStream() {
-        if (this.state.videos.preview.compiledStream) {
-            this.state.videos.preview.compiledStream.getTracks().forEach((o) => o.stop());
-        }
-        // this.setState({
-        //     videos: {
-        //         ...this.state.videos,
-        //         preview: {
-        //             ...this.state.videos.preview,
-        //             canvas: undefined,
-        //             compiledStream: undefined,
-        //             stream: undefined,
-        //             videoElements: {
-        //                 ...this.state.videos.preview.videoElements,
-        //                 camera: undefined,
-        //                 screen: undefined,
-        //             },
-        //         },
-        //     },
-        // });
-    }
-    buildPreviewStream() {
-        let cameraVideo: HTMLVideoElement | undefined = undefined;
-        let compiledStream: MediaStream | undefined = undefined;
-        let previewCanvas: HTMLCanvasElement | undefined = undefined;
-        let previewStream: MediaStream | undefined = undefined;
-        let screenVideo: HTMLVideoElement | undefined = undefined;
-
-        if (this.screenHandler
-            && this.screenHandler.isFullscreen) {
-            previewStream = this.screenHandler.stream;
-        } else if (
-            !this.cameraHandler &&
-            this.screenHandler &&
-            !this.screenHandler.isFullscreen
-        ) {
-            previewStream = this.screenHandler.stream;
-        } else if (
-            this.cameraHandler &&
-            this.screenHandler &&
-            !this.screenHandler.isFullscreen
-        ) {
-            cameraVideo = document.createElement("video");
-            cameraVideo.autoplay = true;
-            cameraVideo.height = 100;
-            cameraVideo.width = 100;
-            cameraVideo.srcObject = this.cameraHandler.stream;
-
-            screenVideo = document.createElement("video");
-            screenVideo.autoplay = true;
-            screenVideo.height = 400;
-            screenVideo.width = 500;
-            screenVideo.srcObject = this.screenHandler.stream;
-
-            previewCanvas = document.createElement("canvas");
-            previewCanvas.height = 500;
-            previewCanvas.width = 500;
-            previewStream = previewCanvas.captureStream();
-            compiledStream = previewStream;
-            const ctx = previewCanvas.getContext("2d");
-
-            const updatePreviewWithCameraAndPartialStream = () => {
-                if (
-                    this.state.videos.preview.videoElements.screen &&
-                    this.state.videos.preview.videoElements.camera
-                ) {
-                    ctx?.drawImage(
-                        this.state.videos.preview.videoElements.screen,
-                        0,
-                        0,
-                        500,
-                        400
-                    );
-                    ctx?.drawImage(
-                        this.state.videos.preview.videoElements.camera,
-                        400,
-                        400,
-                        100,
-                        100
-                    );
-                    requestAnimationFrame(updatePreviewWithCameraAndPartialStream);
-                }
-            };
-            updatePreviewWithCameraAndPartialStream();
-        } else if (this.cameraHandler && !this.screenHandler) {
-            previewStream = this.cameraHandler.stream;
+    async buildPreviewStream() {
+        if (this.previewHandler) {
+            this.previewHandler.dispose();
+            this.previewHandler = undefined;
         }
 
+        const handler = PreviewBuilder.build({
+            cameraStream: this.cameraHandler?.stream,
+            screenFullscreen: this.screenHandler?.isFullscreen,
+            screenStream: this.screenHandler?.stream,
+        });
+        let previewStream: MediaStream | undefined;
+        if (handler.hasStream) {
+            previewStream = handler.stream;
+        }
         this.setState({
             previewStream: previewStream,
-            videos: {
-                ...this.state.videos,
-                preview: {
-                    ...this.state.videos.preview,
-                    canvas: previewCanvas,
-                    compiledStream: compiledStream,
-                    videoElements: {
-                        ...this.state.videos.preview.videoElements,
-                        camera: cameraVideo,
-                        screen: screenVideo,
-                    },
-                },
-            },
         });
     }
 
@@ -473,17 +383,10 @@ type IState = {
     previewStream?: MediaStream,
     videos: {
         preview: {
-            canvas?: HTMLCanvasElement,
-            compiledStream?: MediaStream,
             pictureInPictureStream?: MediaStream,
             videoElements: {
-                camera?: HTMLVideoElement,
                 pictureInPicture?: HTMLVideoElement,
-                screen?: HTMLVideoElement,
             },
-        },
-        record: {
-            stream?: MediaStream,
         },
     },
 };
