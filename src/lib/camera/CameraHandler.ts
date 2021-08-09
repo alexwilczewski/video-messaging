@@ -1,19 +1,19 @@
-export class ScreenHandler {
-    private _error?: ScreenHandlerError;
+import { CameraHandlerError } from "./CameraHandlerError";
+
+export class CameraHandler {
+    private _error?: CameraHandlerError;
     private _errorException?: Error;
-    private _isFullscreen?: boolean;
     private _stream?: MediaStream;
     private _onCloseListeners: EventListenerOrEventListenerObject[];
 
-    constructor(request: ScreenHandlerCreateRequest) {
+    constructor(request: CameraHandlerCreateRequest) {
         this._error = request.error;
         this._errorException = request.errorException;
-        this._isFullscreen = request.isFullscreen;
         this._stream = request.stream;
         this._onCloseListeners = [];
     }
 
-    public get error(): ScreenHandlerError {
+    public get error(): CameraHandlerError {
         if (!this._error) { throw new Error("Error must be defined"); }
         return this._error;
     }
@@ -21,10 +21,6 @@ export class ScreenHandler {
     public get errorException(): Error {
         if (!this._errorException) { throw new Error("ErrorException must be defined"); }
         return this._errorException;
-    }
-
-    public get isFullscreen(): boolean {
-        return !!this._isFullscreen;
     }
 
     public get hasStream(): boolean {
@@ -53,15 +49,8 @@ export class ScreenHandler {
     }
 }
 
-export type ScreenHandlerCreateRequest = {
-    error?: ScreenHandlerError;
+export type CameraHandlerCreateRequest = {
+    error?: CameraHandlerError;
     errorException?: Error;
-    isFullscreen?: boolean;
     stream?: MediaStream;
-};
-
-export enum ScreenHandlerError {
-    None = 0,
-    NotAllowed,
-    Unknown,
 };

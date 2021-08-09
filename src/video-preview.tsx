@@ -8,7 +8,9 @@ export class VideoPreview extends Component<IProps, IState> {
   }
 
   videoRef(element: HTMLVideoElement) {
-    element.srcObject = this.props.stream;
+    if (element) {
+      element.srcObject = this.props.stream;
+    }
   }
 
   render() {

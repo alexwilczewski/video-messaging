@@ -1,9 +1,12 @@
 import React, { Component } from "react";
-import ReactDOM from "react-dom";
-import { ScreenRequest } from "./lib/ScreenRequest";
-import { ScreenHandler, ScreenHandlerError } from "./lib/ScreenHandler";
+import { ScreenRequest } from "./lib/screen/ScreenRequest";
+import { ScreenHandler } from "./lib/screen/ScreenHandler";
 import { RecordSelection } from "./record-selection";
 import { SelectionPreview } from "./selection-preview";
+import { ScreenHandlerError } from "./lib/screen/ScreenHandlerError";
+import { CameraHandler } from "./lib/camera/CameraHandler";
+import { CameraRequest } from "./lib/camera/CameraRequest";
+import { CameraHandlerError } from "./lib/camera/CameraHandlerError";
 
 type SelectionRequestRequest = {
     audio: Boolean;
@@ -22,6 +25,7 @@ export class SelectionWrapper extends Component<IProps, IState> {
             inputs: undefined,
             max: 4,
         };
+    private cameraHandler?: CameraHandler;
     private screenHandler?: ScreenHandler;
 
     constructor(props: IProps) {
@@ -30,9 +34,6 @@ export class SelectionWrapper extends Component<IProps, IState> {
         this.state = {
             audio: {
                 level: 0,
-                stream: undefined,
-            },
-            camera: {
                 stream: undefined,
             },
             enabled: {
@@ -58,6 +59,7 @@ export class SelectionWrapper extends Component<IProps, IState> {
             },
         };
 
+        this.handleCameraTurningOff = this.handleCameraTurningOff.bind(this);
         this.handleScreenTurningOff = this.handleScreenTurningOff.bind(this);
         this.selectionRequest = this.selectionRequest.bind(this);
         this.updateAudioLevel = this.updateAudioLevel.bind(this);
@@ -79,11 +81,6 @@ export class SelectionWrapper extends Component<IProps, IState> {
             } catch (ex) {
                 console.error("Unable to capture audio levels.", ex);
             }
-        }
-
-        if (!prevState.camera.stream && this.state.camera.stream) {
-            // Camera was enabled!
-            this.handleVideoChange();
         }
     }
 
@@ -194,14 +191,12 @@ export class SelectionWrapper extends Component<IProps, IState> {
         }
     }
     handleCameraTurningOff() {
-        if (this.state.camera.stream) {
-            this.state.camera.stream.getTracks().forEach((o) => o.stop());
+        if (this.cameraHandler) {
+            this.cameraHandler.dispose();
+            this.cameraHandler = undefined;
         }
+        this.handleVideoChange();
         this.setState({
-            camera: {
-                ...this.state.camera,
-                stream: undefined,
-            },
             enabled: {
                 ...this.state.enabled,
                 camera: false,
@@ -209,43 +204,23 @@ export class SelectionWrapper extends Component<IProps, IState> {
         });
     }
     async handleCameraTurningOn() {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: true,
-                audio: false,
-            });
-            stream.addEventListener("oninactive", () => this.handleCameraTurningOff());
+        const handler = await CameraRequest.request();
+        if (handler.hasStream) {
+            handler.addOnClose(this.handleCameraTurningOff);
+            this.cameraHandler = handler;
+            this.handleVideoChange();
             this.setState({
-                camera: {
-                    ...this.state.camera,
-                    stream: stream,
-                },
                 enabled: {
                     ...this.state.enabled,
                     camera: true,
                 },
             });
-        } catch (ex) {
-            this.setState({
-                camera: {
-                    ...this.state.camera,
-                    stream: undefined,
-                },
-                enabled: {
-                    ...this.state.enabled,
-                    camera: false,
-                },
-            });
-            if (ex.name.includes("NotAllowedError")) {
-                console.error(
-                    "Asking for camera was denied. Check camera permissions.",
-                    ex
-                );
-            } else if (ex.name.includes("NotFoundError")) {
-                console.error(
-                    "No camera found. Does laptop button need to be toggled?",
-                    ex
-                );
+        } else {
+            const ex = handler.errorException;
+            if (handler.error === CameraHandlerError.NotAllowed) {
+                console.error("Asking for camera was denied. Check camera permissions.", ex);
+            } else if (handler.error === CameraHandlerError.NotFound) {
+                console.error("No camera found. Does laptop button need to be toggled?", ex);
             } else {
                 console.error("Unknown exception while asking for camera.", ex);
             }
@@ -266,7 +241,6 @@ export class SelectionWrapper extends Component<IProps, IState> {
             this.screenHandler.dispose();
             this.screenHandler = undefined;
         }
-        debugger;
         this.handleVideoChange();
         this.setState({
             enabled: {
@@ -276,10 +250,10 @@ export class SelectionWrapper extends Component<IProps, IState> {
         });
     }
     async handleScreenTurningOn() {
-        const screenHandler = await ScreenRequest.request();
-        if (screenHandler.hasStream) {
-            screenHandler.addOnClose(this.handleScreenTurningOff);
-            this.screenHandler = screenHandler;
+        const handler = await ScreenRequest.request();
+        if (handler.hasStream) {
+            handler.addOnClose(this.handleScreenTurningOff);
+            this.screenHandler = handler;
             this.handleVideoChange();
             this.setState({
                 enabled: {
@@ -288,8 +262,8 @@ export class SelectionWrapper extends Component<IProps, IState> {
                 },
             });
         } else {
-            const ex = screenHandler.errorException;
-            if (screenHandler.error === ScreenHandlerError.NotAllowed) {
+            const ex = handler.errorException;
+            if (handler.error === ScreenHandlerError.NotAllowed) {
                 console.error("Asking for screen was denied. Likely cancelled.", ex);
             } else {
                 console.error("Unknown exception while asking for screen.", ex);
@@ -336,13 +310,13 @@ export class SelectionWrapper extends Component<IProps, IState> {
             && this.screenHandler.isFullscreen) {
             previewStream = this.screenHandler.stream;
         } else if (
-            !this.state.camera.stream &&
+            !this.cameraHandler &&
             this.screenHandler &&
             !this.screenHandler.isFullscreen
         ) {
             previewStream = this.screenHandler.stream;
         } else if (
-            this.state.camera.stream &&
+            this.cameraHandler &&
             this.screenHandler &&
             !this.screenHandler.isFullscreen
         ) {
@@ -350,7 +324,7 @@ export class SelectionWrapper extends Component<IProps, IState> {
             cameraVideo.autoplay = true;
             cameraVideo.height = 100;
             cameraVideo.width = 100;
-            cameraVideo.srcObject = this.state.camera.stream;
+            cameraVideo.srcObject = this.cameraHandler.stream;
 
             screenVideo = document.createElement("video");
             screenVideo.autoplay = true;
@@ -388,8 +362,8 @@ export class SelectionWrapper extends Component<IProps, IState> {
                 }
             };
             updatePreviewWithCameraAndPartialStream();
-        } else if (this.state.camera.stream && !this.screenHandler) {
-            previewStream = this.state.camera.stream;
+        } else if (this.cameraHandler && !this.screenHandler) {
+            previewStream = this.cameraHandler.stream;
         }
 
         this.setState({
@@ -429,13 +403,13 @@ export class SelectionWrapper extends Component<IProps, IState> {
     }
     async buildPictureInPicturePreviewStream() {
         if (
-            this.state.camera.stream &&
+            this.cameraHandler &&
             this.screenHandler &&
             this.screenHandler.isFullscreen
         ) {
             const pictureInPicture = document.createElement("video");
             pictureInPicture.autoplay = true;
-            pictureInPicture.srcObject = this.state.camera.stream;
+            pictureInPicture.srcObject = this.cameraHandler.stream;
             pictureInPicture.addEventListener(
                 "loadedmetadata",
                 () => {
@@ -489,9 +463,6 @@ type IProps = {};
 type IState = {
     audio: {
         level: number,
-        stream?: MediaStream,
-    },
-    camera: {
         stream?: MediaStream,
     },
     enabled: {

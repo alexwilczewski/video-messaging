@@ -22,6 +22,6 @@ export class SelectionPreview extends Component<IProps, IState> {
 type IProps = {
   audioLevel: number;
   showAudio: boolean;
-  videoStream: MediaStream | undefined;
+  videoStream?: MediaStream;
 };
 type IState = {};

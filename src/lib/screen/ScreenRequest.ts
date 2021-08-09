@@ -1,4 +1,5 @@
-import { ScreenHandlerError, ScreenHandler, ScreenHandlerCreateRequest } from "./ScreenHandler";
+import { ScreenHandler, ScreenHandlerCreateRequest } from "./ScreenHandler";
+import { ScreenHandlerError } from "./ScreenHandlerError";
 
 export class ScreenRequest {
     static async request(): Promise<ScreenHandler> {
@@ -20,16 +21,13 @@ export class ScreenRequest {
                 .some((track) => {
                     return track.label.includes("screen");
                 });
-            // stream.addEventListener("oninactive", () => this.handleScreenTurningOff());
             success = true;
         } catch (ex) {
             errorException = ex;
             if (ex.name.includes("NotAllowedError")) {
                 errorEnum = ScreenHandlerError.NotAllowed;
-                // console.error("Asking for screen was denied. Likely cancelled.", ex);
             } else {
                 errorEnum = ScreenHandlerError.Unknown;
-                // console.error("Unknown exception while asking for screen.", ex);
             }
         }
 
