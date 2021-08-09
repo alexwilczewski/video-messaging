@@ -18,6 +18,10 @@ export class PreviewHandler {
         return !!this._stream;
     }
 
+    public get isStreamComposite(): boolean {
+        return !!this._compositeStream;
+    }
+
     public get stream(): MediaStream {
         if (!this._stream) { throw new Error("Stream must be defined"); }
         return this._stream;
@@ -25,7 +29,7 @@ export class PreviewHandler {
 
     public dispose() {
         if (this._canvas) { this._canvas = undefined; }
-        if (!!this._compositeStream) {
+        if (this.isStreamComposite) {
             this._compositeStream?.getTracks().forEach((o) => o.stop());
             this._compositeStream = undefined;
         }

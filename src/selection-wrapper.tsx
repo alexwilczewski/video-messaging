@@ -11,6 +11,7 @@ import { PreviewBuilder } from "./lib/preview/PreviewBuilder";
 import { PreviewHandler } from "./lib/preview/PreviewHandler";
 import { PnPPreviewBuilder } from "./lib/pnp-preview/PnPPreviewBuilder";
 import { PnPPreviewHandler } from "./lib/pnp-preview/PnPPreviewHandler";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 type SelectionRequestRequest = {
     audio: Boolean;
@@ -49,8 +50,8 @@ export class SelectionWrapper extends Component<IProps, IState> {
             },
         };
 
+        this.recordClicked = this.recordClicked.bind(this);
         this.selectionRequest = this.selectionRequest.bind(this);
-        this.updateAudioLevel = this.updateAudioLevel.bind(this);
     }
 
     async componentDidMount() {
@@ -109,7 +110,7 @@ export class SelectionWrapper extends Component<IProps, IState> {
                 video: false,
                 audio: true,
             });
-            stream.addEventListener("oninactive", () => this.handleAudioTurningOff());
+            stream.addEventListener("inactive", () => this.handleAudioTurningOff());
             this.setState({
                 audio: {
                     ...this.state.audio,
@@ -165,7 +166,7 @@ export class SelectionWrapper extends Component<IProps, IState> {
                     level: Math.round(left * this.audioPreviewCapture.max),
                 },
             });
-            requestAnimationFrame(this.updateAudioLevel);
+            requestAnimationFrame(() => this.updateAudioLevel());
         }
     }
 
@@ -293,41 +294,60 @@ export class SelectionWrapper extends Component<IProps, IState> {
             cameraHandler: this.cameraHandler,
             screenHandler: this.screenHandler,
         });
-        handler.addOnLeave(this.handleCameraTurningOff);
+        handler.addOnLeave(() => this.handleCameraTurningOff());
         this.pnpPreviewHandler = handler;
+    }
+
+    recordClicked() {
+        this.props.onStartRecording({
+            previewHandler: this.previewHandler,
+            screenHandler: this.screenHandler,
+        });
     }
 
     render() {
         return (
             <div>
-                <div className="">
-                    <RecordSelection
-                        audio={this.state.enabled.audio}
-                        camera={this.state.enabled.camera}
-                        onSelectionChange={this.selectionRequest}
-                        screen={this.state.enabled.screen}></RecordSelection>
-
-                    <SelectionPreview
-                        audioLevel={this.state.audio.level}
-                        showAudio={!!this.state.audio.stream}
-                        videoStream={this.state.previewStream}
-                    ></SelectionPreview>
-                </div>
-            </div >
+                <RecordSelection
+                    audio={this.state.enabled.audio}
+                    camera={this.state.enabled.camera}
+                    onSelectionChange={this.selectionRequest}
+                    screen={this.state.enabled.screen}
+                ></RecordSelection>
+                <SelectionPreview
+                    audioLevel={this.state.audio.level}
+                    showAudio={!!this.state.audio.stream}
+                    videoStream={this.state.previewStream}
+                ></SelectionPreview>
+                <button className="btn btn-outline-danger btn-lg px-4"
+                    onClick={this.recordClicked}>
+                    <FontAwesomeIcon className="mx-1"
+                        icon={["fas", "circle"]}></FontAwesomeIcon>
+                    Record
+                </button>
+            </div>
         );
     }
 }
 
-type IProps = {};
+type IProps = {
+    onStartRecording: OnStartRecordingCallback;
+};
 type IState = {
     audio: {
-        level: number,
-        stream?: MediaStream,
-    },
+        level: number;
+        stream?: MediaStream;
+    };
     enabled: {
-        audio: boolean,
-        camera: boolean,
-        screen: boolean,
-    },
-    previewStream?: MediaStream,
+        audio: boolean;
+        camera: boolean;
+        screen: boolean;
+    };
+    previewStream?: MediaStream;
+};
+
+type OnStartRecordingCallback = (request: OnStartRecordingRequest) => void;
+export type OnStartRecordingRequest = {
+    previewHandler?: PreviewHandler;
+    screenHandler?: ScreenHandler;
 };
