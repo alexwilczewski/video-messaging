@@ -1,15 +1,17 @@
-import React, { Component } from "react";
+import React, { Component, RefObject } from "react";
 
 export class VideoPreview extends Component<IProps, IState> {
+  private videoRef: RefObject<HTMLVideoElement>;
+
   constructor(props: IProps) {
     super(props);
 
-    this.videoRef = this.videoRef.bind(this);
+    this.videoRef = React.createRef<HTMLVideoElement>();
   }
 
-  videoRef(element: HTMLVideoElement) {
-    if (element) {
-      element.srcObject = this.props.stream;
+  componentDidUpdate() {
+    if (this.videoRef.current) {
+      this.videoRef.current.srcObject = this.props.stream;
     }
   }
 
