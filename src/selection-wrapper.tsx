@@ -49,9 +49,6 @@ export class SelectionWrapper extends Component<IProps, IState> {
             },
         };
 
-        this.handleCameraTurningOff = this.handleCameraTurningOff.bind(this);
-        this.handleScreenTurningOff = this.handleScreenTurningOff.bind(this);
-        this.handleVideoChange = this.handleVideoChange.bind(this);
         this.selectionRequest = this.selectionRequest.bind(this);
         this.updateAudioLevel = this.updateAudioLevel.bind(this);
     }
@@ -197,7 +194,7 @@ export class SelectionWrapper extends Component<IProps, IState> {
     async handleCameraTurningOn() {
         const handler = await CameraRequest.request();
         if (handler.hasStream) {
-            handler.addOnClose(this.handleCameraTurningOff);
+            handler.addOnClose(() => this.handleCameraTurningOff());
             this.cameraHandler = handler;
             this.handleVideoChange();
             this.setState({

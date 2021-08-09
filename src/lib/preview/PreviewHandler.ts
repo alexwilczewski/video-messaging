@@ -40,7 +40,7 @@ export class PreviewHandler {
             const ctx = this._canvas.getContext("2d");
             ctx?.drawImage(this._videoScreen, 0, 0, 500, 400);
             ctx?.drawImage(this._videoCamera, 400, 400, 100, 100);
-            requestAnimationFrame(() => this.drawCanvasIfNecessary);
+            requestAnimationFrame(() => this.drawCanvasIfNecessary());
         }
     }
 }
