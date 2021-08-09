@@ -40,16 +40,16 @@ export class ScreenHandler {
 
     public addOnClose(callback: EventListenerOrEventListenerObject) {
         this._onCloseListeners.push(callback);
-        this.stream.addEventListener("inactive", callback);
+        this._stream?.addEventListener("inactive", callback);
     }
 
     public dispose() {
         if (this.hasStream) {
             this._onCloseListeners.forEach((cb) => {
-                this.stream.removeEventListener("inactive", cb);
+                this._stream?.removeEventListener("inactive", cb);
             });
             this._onCloseListeners = [];
-            this.stream.getTracks().forEach((o) => o.stop());
+            this._stream?.getTracks().forEach((o) => o.stop());
             this._stream = undefined;
         }
     }

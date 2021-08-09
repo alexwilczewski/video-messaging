@@ -1,11 +1,13 @@
 export class PreviewHandler {
     private _canvas?: HTMLCanvasElement;
+    private _compositeStream?: MediaStream;
     private _stream?: MediaStream;
     private _videoCamera?: HTMLVideoElement;
     private _videoScreen?: HTMLVideoElement;
 
     constructor(request: PreviewHandlerCreateRequest) {
         this._canvas = request.canvas;
+        this._compositeStream = request.compositeStream;
         this._stream = request.stream;
         this._videoCamera = request.videoCamera;
         this._videoScreen = request.videoScreen;
@@ -22,11 +24,11 @@ export class PreviewHandler {
     }
 
     public dispose() {
-        if (this.hasStream) {
-            this.stream.getTracks().forEach((o) => o.stop());
-            this._stream = undefined;
-        }
         if (this._canvas) { this._canvas = undefined; }
+        if (!!this._compositeStream) {
+            this._compositeStream?.getTracks().forEach((o) => o.stop());
+            this._compositeStream = undefined;
+        }
         if (this._videoCamera) { this._videoCamera = undefined; }
         if (this._videoScreen) { this._videoScreen = undefined; }
     }
@@ -45,6 +47,7 @@ export class PreviewHandler {
 
 export type PreviewHandlerCreateRequest = {
     canvas?: HTMLCanvasElement;
+    compositeStream?: MediaStream;
     stream?: MediaStream;
     videoCamera?: HTMLVideoElement;
     videoScreen?: HTMLVideoElement;

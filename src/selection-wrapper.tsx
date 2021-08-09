@@ -9,6 +9,8 @@ import { CameraRequest } from "./lib/camera/CameraRequest";
 import { CameraHandlerError } from "./lib/camera/CameraHandlerError";
 import { PreviewBuilder } from "./lib/preview/PreviewBuilder";
 import { PreviewHandler } from "./lib/preview/PreviewHandler";
+import { PnPPreviewBuilder } from "./lib/pnp-preview/PnPPreviewBuilder";
+import { PnPPreviewHandler } from "./lib/pnp-preview/PnPPreviewHandler";
 
 type SelectionRequestRequest = {
     audio: Boolean;
@@ -28,6 +30,7 @@ export class SelectionWrapper extends Component<IProps, IState> {
             max: 4,
         };
     private cameraHandler?: CameraHandler;
+    private pnpPreviewHandler?: PnPPreviewHandler;
     private previewHandler?: PreviewHandler;
     private screenHandler?: ScreenHandler;
 
@@ -43,14 +46,6 @@ export class SelectionWrapper extends Component<IProps, IState> {
                 audio: false,
                 camera: false,
                 screen: false,
-            },
-            videos: {
-                preview: {
-                    pictureInPictureStream: undefined,
-                    videoElements: {
-                        pictureInPicture: undefined,
-                    },
-                },
             },
         };
 
@@ -187,7 +182,6 @@ export class SelectionWrapper extends Component<IProps, IState> {
         }
     }
     handleCameraTurningOff() {
-        debugger;
         if (this.cameraHandler) {
             this.cameraHandler.dispose();
             this.cameraHandler = undefined;
@@ -249,7 +243,7 @@ export class SelectionWrapper extends Component<IProps, IState> {
     async handleScreenTurningOn() {
         const handler = await ScreenRequest.request();
         if (handler.hasStream) {
-            handler.addOnClose(this.handleScreenTurningOff);
+            handler.addOnClose(() => this.handleScreenTurningOff());
             this.screenHandler = handler;
             this.handleVideoChange();
             this.setState({
@@ -270,11 +264,9 @@ export class SelectionWrapper extends Component<IProps, IState> {
 
     async handleVideoChange() {
         this.buildPreviewStream();
-
-        await this.clearPictureInPicturePreviewStream();
         await this.buildPictureInPicturePreviewStream();
     }
-    async buildPreviewStream() {
+    buildPreviewStream() {
         if (this.previewHandler) {
             this.previewHandler.dispose();
             this.previewHandler = undefined;
@@ -287,65 +279,25 @@ export class SelectionWrapper extends Component<IProps, IState> {
         });
         let previewStream: MediaStream | undefined;
         if (handler.hasStream) {
+            this.previewHandler = handler;
             previewStream = handler.stream;
         }
         this.setState({
             previewStream: previewStream,
         });
     }
-
-    async clearPictureInPicturePreviewStream() {
-        if (document.pictureInPictureElement) {
-            await document.exitPictureInPicture();
-        }
-        this.setState({
-            videos: {
-                ...this.state.videos,
-                preview: {
-                    ...this.state.videos.preview,
-                    videoElements: {
-                        ...this.state.videos.preview.videoElements,
-                        pictureInPicture: undefined,
-                    },
-                },
-            },
-        });
-    }
     async buildPictureInPicturePreviewStream() {
-        if (
-            this.cameraHandler &&
-            this.screenHandler &&
-            this.screenHandler.isFullscreen
-        ) {
-            const pictureInPicture = document.createElement("video");
-            pictureInPicture.autoplay = true;
-            pictureInPicture.srcObject = this.cameraHandler.stream;
-            pictureInPicture.addEventListener(
-                "loadedmetadata",
-                () => {
-                    pictureInPicture.requestPictureInPicture();
-                }
-            );
-            pictureInPicture.addEventListener(
-                "leavepictureinpicture",
-                () => {
-                    this.handleCameraTurningOff();
-                }
-            );
-
-            this.setState({
-                videos: {
-                    ...this.state.videos,
-                    preview: {
-                        ...this.state.videos.preview,
-                        videoElements: {
-                            ...this.state.videos.preview.videoElements,
-                            pictureInPicture: pictureInPicture,
-                        },
-                    },
-                },
-            })
+        if (this.pnpPreviewHandler) {
+            await this.pnpPreviewHandler.dispose();
+            this.pnpPreviewHandler = undefined;
         }
+
+        const handler = PnPPreviewBuilder.build({
+            cameraHandler: this.cameraHandler,
+            screenHandler: this.screenHandler,
+        });
+        handler.addOnLeave(this.handleCameraTurningOff);
+        this.pnpPreviewHandler = handler;
     }
 
     render() {
@@ -381,12 +333,4 @@ type IState = {
         screen: boolean,
     },
     previewStream?: MediaStream,
-    videos: {
-        preview: {
-            pictureInPictureStream?: MediaStream,
-            videoElements: {
-                pictureInPicture?: HTMLVideoElement,
-            },
-        },
-    },
 };

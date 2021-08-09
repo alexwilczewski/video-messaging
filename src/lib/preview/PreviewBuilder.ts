@@ -7,6 +7,7 @@ export class PreviewBuilder {
         const screenFullscreen = request.screenFullscreen;
 
         let canvas: HTMLCanvasElement | undefined;
+        let compositeStream: MediaStream | undefined;
         let stream: MediaStream | undefined;
         let videoCamera: HTMLVideoElement | undefined;
         let videoScreen: HTMLVideoElement | undefined;
@@ -41,13 +42,14 @@ export class PreviewBuilder {
             canvas.height = 500;
             canvas.width = 500;
             stream = canvas.captureStream();
-
+            compositeStream = stream;
         } else if (cameraStream && !screenStream) {
             stream = cameraStream;
         }
 
         return new PreviewHandler({
             canvas: canvas,
+            compositeStream: compositeStream,
             stream: stream,
             videoCamera: videoCamera,
             videoScreen: videoScreen,
